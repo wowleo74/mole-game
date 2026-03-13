@@ -1,6 +1,6 @@
 {
-"name":"시은가은 두더지게임",
-"short_name":"두더지게임",
+"name":"시은가은 두더지게임2",
+"short_name":"두더지게임2",
 "start_url":"index.html",
 "display":"standalone",
 "background_color":"#87CEEB",
@@ -12,4 +12,5 @@
 "type":"image/png"
 }
 ]
+
 }
