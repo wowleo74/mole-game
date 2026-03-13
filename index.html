@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>시은가은 두더지게임</title>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#ff9800">
+
+<style>
+
+body{
+text-align:center;
+font-family:Arial;
+background:linear-gradient(#87CEEB,#e0f7ff);
+margin:0;
+padding:0;
+touch-action:manipulation;
+}
+
+h2{
+margin-top:20px;
+font-size:30px;
+}
+
+#difficulty{
+margin:10px;
+font-size:18px;
+}
+
+#info{
+font-size:22px;
+margin:15px;
+background:white;
+display:inline-block;
+padding:10px 20px;
+border-radius:12px;
+box-shadow:0 4px 8px rgba(0,0,0,0.2);
+}
+
+#board{
+width:95vw;
+max-width:420px;
+margin:20px auto;
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:4vw;
+}
+
+.hole{
+width:100%;
+aspect-ratio:1/1;
+background:radial-gradient(circle,#6b3f1d,#3b1f0f);
+border-radius:20px;
+display:flex;
+align-items:center;
+justify-content:center;
+cursor:pointer;
+overflow:hidden;
+}
+
+.hole img{
+width:70%;
+height:70%;
+object-fit:contain;
+pointer-events:none;
+}
+
+button{
+font-size:22px;
+padding:14px 34px;
+margin-top:15px;
+border:none;
+border-radius:12px;
+background:#ff9800;
+color:white;
+font-weight:bold;
+}
+
+.scorePopup{
+position:fixed;
+font-size:40px;
+font-weight:bold;
+animation:pop 0.8s ease forwards;
+pointer-events:none;
+}
+
+@keyframes pop{
+0%{transform:translateY(10px);opacity:0;}
+100%{transform:translateY(-50px);opacity:1;}
+}
+
+#gameOverScreen{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:rgba(0,0,0,0.7);
+color:white;
+display:none;
+justify-content:center;
+align-items:center;
+flex-direction:column;
+font-size:28px;
+z-index:999;
+}
+
+#countdown{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+display:none;
+justify-content:center;
+align-items:center;
+font-size:80px;
+font-weight:bold;
+color:white;
+background:rgba(0,0,0,0.6);
+z-index:998;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h2>시은가은 두더지게임</h2>
+
+<div id="difficulty">
+난이도 :
+<label><input type="radio" name="level" value="900" checked> 쉬움</label>
+<label><input type="radio" name="level" value="650"> 보통</label>
+<label><input type="radio" name="level" value="450"> 어려움</label>
+</div>
+
+<div id="info">
+점수 : <span id="score">0</span> |
+최고점수 : <span id="best">0</span> |
+시간 : <span id="time">30</span>
+</div>
+
+<div id="board"></div>
+
+<button onclick="startCountdown()">게임 시작</button>
+
+<div id="gameOverScreen">
+<h1>게임 종료</h1>
+<p id="finalScore"></p>
+<button onclick="restartGame()">다시하기</button>
+</div>
+
+<div id="countdown"></div>
+
+<script>
+
+let score=0
+let time=30
+let gameTimer
+let moleTimer
+
+const board=document.getElementById("board")
+
+let bestScore=localStorage.getItem("bestScore") || 0
+document.getElementById("best").innerText=bestScore
+
+// 🔊 안정된 소리 시스템
+let audioCtx=null
+
+function playSound(freq){
+
+try{
+
+if(!audioCtx){
+audioCtx=new(window.AudioContext||window.webkitAudioContext)()
+}
+
+const osc=audioCtx.createOscillator()
+const gain=audioCtx.createGain()
+
+osc.connect(gain)
+gain.connect(audioCtx.destination)
+
+osc.frequency.value=freq
+
+osc.start()
+
+gain.gain.exponentialRampToValueAtTime(
+0.00001,
+audioCtx.currentTime+0.2
+)
+
+osc.stop(audioCtx.currentTime+0.2)
+
+}catch(e){}
+
+}
+
+function showScore(hole,text,color){
+
+let rect=hole.getBoundingClientRect()
+
+let popup=document.createElement("div")
+popup.className="scorePopup"
+popup.innerText=text
+popup.style.color=color
+
+popup.style.left=(rect.left+rect.width/2)+"px"
+popup.style.top=(rect.top+rect.height/2)+"px"
+
+document.body.appendChild(popup)
+
+setTimeout(()=>popup.remove(),800)
+
+}
+
+for(let i=0;i<9;i++){
+
+let hole=document.createElement("div")
+hole.className="hole"
+
+hole.onclick=()=>{
+
+let type=hole.dataset.type
+
+if(type=="sieun"){
+score+=10
+playSound(700)
+showScore(hole,"+10","yellow")
+}
+
+if(type=="gaeun"){
+score+=10
+playSound(700)
+showScore(hole,"+10","yellow")
+}
+
+if(type=="doll"){
+score+=20
+playSound(1000)
+showScore(hole,"+20","lime")
+}
+
+if(type=="dad"){
+score-=20
+playSound(200)
+showScore(hole,"-20","red")
+}
+
+document.getElementById("score").innerText=score
+
+hole.innerHTML=""
+hole.dataset.type=""
+
+}
+
+board.appendChild(hole)
+
+}
+
+function startCountdown(){
+
+let count=3
+const countdown=document.getElementById("countdown")
+
+countdown.style.display="flex"
+countdown.innerText=count
+
+let timer=setInterval(()=>{
+
+count--
+
+if(count>0){
+countdown.innerText=count
+}else if(count===0){
+countdown.innerText="START"
+}else{
+clearInterval(timer)
+countdown.style.display="none"
+startGame()
+}
+
+},1000)
+
+}
+
+function startGame(){
+
+score=0
+time=30
+
+document.getElementById("score").innerText=score
+document.getElementById("time").innerText=time
+
+let level=document.querySelector('input[name="level"]:checked').value
+
+clearInterval(gameTimer)
+clearInterval(moleTimer)
+
+gameTimer=setInterval(()=>{
+
+time--
+document.getElementById("time").innerText=time
+
+if(time<=0){
+
+clearInterval(gameTimer)
+clearInterval(moleTimer)
+
+if(score>bestScore){
+bestScore=score
+localStorage.setItem("bestScore",bestScore)
+document.getElementById("best").innerText=bestScore
+}
+
+document.getElementById("finalScore").innerText="점수 : "+score
+document.getElementById("gameOverScreen").style.display="flex"
+
+}
+
+},1000)
+
+moleTimer=setInterval(showCharacter,level)
+
+}
+
+function restartGame(){
+
+document.getElementById("gameOverScreen").style.display="none"
+
+}
+
+function showCharacter(){
+
+const holes=document.querySelectorAll(".hole")
+
+holes.forEach(h=>{
+h.innerHTML=""
+h.dataset.type=""
+})
+
+let randomHole=Math.floor(Math.random()*9)
+let r=Math.random()
+
+let img=""
+let type=""
+
+if(r<0.35){
+img="sieun.png"
+type="sieun"
+}
+else if(r<0.70){
+img="gaeun.png"
+type="gaeun"
+}
+else if(r<0.90){
+img="doll.png"
+type="doll"
+}
+else{
+img="dad.png"
+type="dad"
+}
+
+holes[randomHole].innerHTML="<img src='"+img+"'>"
+holes[randomHole].dataset.type=type
+
+}
+
+// PWA
+if("serviceWorker" in navigator){
+navigator.serviceWorker.register("service-worker.js")
+}
+
+</script>
+
+</body>
+</html>
