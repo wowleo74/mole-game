@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -21,18 +22,19 @@ padding:0;
 touch-action:manipulation;
 }
 
+.dadCount{
+color:red;
+font-weight:bold;
+font-size:22px;
+}
+
 h2{
 margin-top:20px;
 font-size:30px;
 }
 
-#difficulty{
-margin:10px;
-font-size:18px;
-}
-
 #info{
-font-size:22px;
+font-size:20px;
 margin:15px;
 background:white;
 display:inline-block;
@@ -53,13 +55,17 @@ gap:4vw;
 .hole{
 width:100%;
 aspect-ratio:1/1;
-background:radial-gradient(circle,#6b3f1d,#3b1f0f);
-border-radius:20px;
+background:radial-gradient(circle,#7a451e,#3b1f0f);
+border-radius:25px;
 display:flex;
 align-items:center;
 justify-content:center;
 cursor:pointer;
 overflow:hidden;
+
+box-shadow:
+inset 0 8px 15px rgba(0,0,0,0.5),
+0 6px 10px rgba(0,0,0,0.3);
 }
 
 .hole img{
@@ -67,6 +73,12 @@ width:70%;
 height:70%;
 object-fit:contain;
 pointer-events:none;
+animation:popUp 0.15s ease;
+}
+
+@keyframes popUp{
+0%{transform:scale(0);}
+100%{transform:scale(1);}
 }
 
 button{
@@ -125,25 +137,35 @@ background:rgba(0,0,0,0.6);
 z-index:998;
 }
 
+#stagePopup{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+display:none;
+justify-content:center;
+align-items:center;
+font-size:60px;
+font-weight:bold;
+color:white;
+background:rgba(0,0,0,0.6);
+z-index:1000;
+}
 </style>
-
 </head>
 
 <body>
 
 <h2>시은가은 두더지게임</h2>
 
-<div id="difficulty">
-난이도 :
-<label><input type="radio" name="level" value="900" checked> 쉬움</label>
-<label><input type="radio" name="level" value="650"> 보통</label>
-<label><input type="radio" name="level" value="450"> 어려움</label>
-</div>
-
 <div id="info">
+
+Stage : <span id="stage">1</span> |
 점수 : <span id="score">0</span> |
 최고점수 : <span id="best">0</span> |
 시간 : <span id="time">30</span>
+아빠 : <span id="dad" class="dadCount">0</span>/3 |
 </div>
 
 <div id="board"></div>
@@ -157,11 +179,16 @@ z-index:998;
 </div>
 
 <div id="countdown"></div>
+<div id="stagePopup"></div>
 
 <script>
 
 let score=0
-let time=30
+let time=20
+let stage=1
+let speed=900
+let dadHit=0
+
 let gameTimer
 let moleTimer
 
@@ -170,7 +197,8 @@ const board=document.getElementById("board")
 let bestScore=localStorage.getItem("bestScore") || 0
 document.getElementById("best").innerText=bestScore
 
-// 🔊 안정된 소리 시스템
+let bestStage=localStorage.getItem("bestStage") || 0
+
 let audioCtx=null
 
 function playSound(freq){
@@ -188,7 +216,6 @@ osc.connect(gain)
 gain.connect(audioCtx.destination)
 
 osc.frequency.value=freq
-
 osc.start()
 
 gain.gain.exponentialRampToValueAtTime(
@@ -219,7 +246,18 @@ document.body.appendChild(popup)
 setTimeout(()=>popup.remove(),800)
 
 }
+function showStage(){
 
+const popup=document.getElementById("stagePopup")
+
+popup.innerText="STAGE "+stage
+popup.style.display="flex"
+
+setTimeout(()=>{
+popup.style.display="none"
+},1200)
+
+}
 for(let i=0;i<9;i++){
 
 let hole=document.createElement("div")
@@ -228,6 +266,7 @@ hole.className="hole"
 hole.onclick=()=>{
 
 let type=hole.dataset.type
+if(!type) return
 
 if(type=="sieun"){
 score+=10
@@ -248,9 +287,23 @@ showScore(hole,"+20","lime")
 }
 
 if(type=="dad"){
+
 score-=20
+dadHit++
+
 playSound(200)
 showScore(hole,"-20","red")
+
+if(navigator.vibrate){
+navigator.vibrate([100,50,100])
+}
+
+document.getElementById("dad").innerText=dadHit
+
+if(dadHit>=3){
+gameOver()
+}
+
 }
 
 document.getElementById("score").innerText=score
@@ -278,9 +331,11 @@ count--
 
 if(count>0){
 countdown.innerText=count
-}else if(count===0){
+}
+else if(count===0){
 countdown.innerText="START"
-}else{
+}
+else{
 clearInterval(timer)
 countdown.style.display="none"
 startGame()
@@ -293,12 +348,15 @@ startGame()
 function startGame(){
 
 score=0
-time=30
+time=20
+stage=1
+speed=900
+dadHit=0
 
 document.getElementById("score").innerText=score
 document.getElementById("time").innerText=time
-
-let level=document.querySelector('input[name="level"]:checked').value
+document.getElementById("stage").innerText=stage
+document.getElementById("dad").innerText=dadHit
 
 clearInterval(gameTimer)
 clearInterval(moleTimer)
@@ -310,6 +368,47 @@ document.getElementById("time").innerText=time
 
 if(time<=0){
 
+if(score < 100){
+gameOver()
+}else{
+nextStage()
+}
+
+}
+
+},1000)
+
+moleTimer=setInterval(showCharacter,speed)
+
+}
+
+function nextStage(){
+
+stage++
+speed-=100
+time=20
+
+showStage()
+
+document.body.style.transform="scale(1.05)"
+
+setTimeout(()=>{
+document.body.style.transform="scale(1)"
+},200)
+
+
+document.getElementById("stage").innerText=stage
+document.getElementById("time").innerText=time
+
+playSound(1200)
+
+clearInterval(moleTimer)
+moleTimer=setInterval(showCharacter,speed)
+
+}
+
+function gameOver(){
+
 clearInterval(gameTimer)
 clearInterval(moleTimer)
 
@@ -319,20 +418,24 @@ localStorage.setItem("bestScore",bestScore)
 document.getElementById("best").innerText=bestScore
 }
 
-document.getElementById("finalScore").innerText="점수 : "+score
-document.getElementById("gameOverScreen").style.display="flex"
-
+if(stage>bestStage){
+bestStage=stage
+localStorage.setItem("bestStage",bestStage)
 }
 
-},1000)
+document.getElementById("finalScore").innerText=
+"점수 : "+score+
+"\nStage : "+stage+
+"\n최고 Stage : "+bestStage
 
-moleTimer=setInterval(showCharacter,level)
+document.getElementById("gameOverScreen").style.display="flex"
 
 }
 
 function restartGame(){
 
 document.getElementById("gameOverScreen").style.display="none"
+startCountdown()
 
 }
 
@@ -373,7 +476,6 @@ holes[randomHole].dataset.type=type
 
 }
 
-// PWA
 if("serviceWorker" in navigator){
 navigator.serviceWorker.register("service-worker.js")
 }
