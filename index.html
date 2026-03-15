@@ -246,6 +246,7 @@ document.body.appendChild(popup)
 setTimeout(()=>popup.remove(),800)
 
 }
+
 function showStage(){
 
 const popup=document.getElementById("stagePopup")
@@ -258,6 +259,7 @@ popup.style.display="none"
 },1200)
 
 }
+
 for(let i=0;i<9;i++){
 
 let hole=document.createElement("div")
@@ -384,23 +386,19 @@ moleTimer=setInterval(showCharacter,speed)
 
 function nextStage(){
 
+if(stage >= 10){
+gameOver()
+return
+}
+
 stage++
-speed-=100
+speed -= 50
 time=20
 
 showStage()
 
-document.body.style.transform="scale(1.05)"
-
-setTimeout(()=>{
-document.body.style.transform="scale(1)"
-},200)
-
-
 document.getElementById("stage").innerText=stage
 document.getElementById("time").innerText=time
-
-playSound(1200)
 
 clearInterval(moleTimer)
 moleTimer=setInterval(showCharacter,speed)
@@ -448,8 +446,24 @@ h.innerHTML=""
 h.dataset.type=""
 })
 
-let randomHole=Math.floor(Math.random()*9)
+let count = stage >=4 ? 2 : 1
+
+let used=[]
+
+for(let i=0;i<count;i++){
+
+let randomHole
+
+do{
+randomHole=Math.floor(Math.random()*9)
+}while(used.includes(randomHole))
+
+used.push(randomHole)
+
 let r=Math.random()
+
+let dadChance = 0.05 + (stage-1)*0.02
+if(dadChance>0.25) dadChance=0.25
 
 let img=""
 let type=""
@@ -462,7 +476,7 @@ else if(r<0.70){
 img="gaeun.png"
 type="gaeun"
 }
-else if(r<0.90){
+else if(r < 1-dadChance){
 img="doll.png"
 type="doll"
 }
@@ -476,11 +490,12 @@ holes[randomHole].dataset.type=type
 
 }
 
+}
+
 if("serviceWorker" in navigator){
 navigator.serviceWorker.register("service-worker.js")
 }
 
 </script>
-
 </body>
 </html>
