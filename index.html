@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>시은가은 두더지게임 V2</title>
+    <link rel="manifest" href="manifest.json">
     <style>
         :root {
             --primary: #FF9800; --danger: #FF5252;
@@ -44,8 +45,7 @@
         .effect-text {
             position: fixed; pointer-events: none; font-weight: 900; z-index: 5000;
             font-size: 35px; text-shadow: 2px 2px 0 white, -2px -2px 0 white, 2px -2px 0 white, -2px 2px 0 white;
-            animation: scorePop 0.8s ease-out forwards;
-            transform: translate(-50%, -50%);
+            animation: scorePop 0.8s ease-out forwards; transform: translate(-50%, -50%);
         }
         @keyframes scorePop {
             0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
@@ -100,11 +100,7 @@
         hole.className = "hole";
         hole.innerHTML = `<div class="character"></div>`;
         hole.addEventListener('mousedown', (e) => handleCatch(hole, e.clientX, e.clientY));
-        hole.addEventListener('touchstart', (e) => { 
-            e.preventDefault(); 
-            const touch = e.touches[0];
-            handleCatch(hole, touch.clientX, touch.clientY); 
-        });
+        hole.addEventListener('touchstart', (e) => { e.preventDefault(); const t = e.touches[0]; handleCatch(hole, t.clientX, t.clientY); });
         document.getElementById("board").appendChild(hole);
     }
 
@@ -112,7 +108,7 @@
         if(!gameActive || !hole.classList.contains('up')) return;
         const type = hole.dataset.type;
         hole.classList.remove('up');
-        hole.dataset.type = ""; // 잡았으므로 타입을 비워줌 (놓침 로직 방지)
+        hole.dataset.type = ""; 
 
         let text = "", color = "yellow";
         if(type === "dad") {
@@ -136,14 +132,14 @@
 
     function showCharacters() {
         const holes = document.querySelectorAll(".hole");
-        let count = (stage >= 4 && Math.random() > 0.5) ? 2 : 1;
+        // 스테이지 3부터 2마리가 나올 확률(50%) 부여
+        let count = (stage >= 3 && Math.random() > 0.5) ? 2 : 1;
         let chosen = [];
         
         for(let i=0; i<count; i++) {
             let idx; do { idx = Math.floor(Math.random() * 9); } while(chosen.includes(idx));
             chosen.push(idx);
             const hole = holes[idx];
-            
             const r = Math.random();
             let type, content;
             if (r < 0.05) { type = "heart"; content = "❤️"; }
@@ -154,14 +150,12 @@
             
             hole.dataset.type = type;
             hole.querySelector(".character").innerHTML = content;
-            
             setTimeout(() => { if(gameActive) hole.classList.add('up'); }, 50);
             
             let stayTime = Math.max(600, speed * 0.8);
             setTimeout(() => {
-                // 아직 'up' 상태이고 타입이 그대로라면 유저가 놓친 것임
+                // 놓침 체크: 구멍에 남아있는데 시은/가은/인형이면 콤보 리셋
                 if(hole.classList.contains('up') && hole.dataset.type === type) {
-                    // 시은, 가은, 인형을 놓쳤을 때만 콤보 초기화
                     if(type !== "dad" && type !== "heart") {
                         combo = 0;
                         updateUI();
@@ -212,14 +206,15 @@
     function initGame() {
         score = 0; stage = 1; speed = 1500; life = 3; combo = 0; time = 20;
         document.getElementById("startBtn").style.display = "none";
+        document.getElementById("gameOverScreen").style.display = "none";
         const cdOverlay = document.getElementById("startCountdown");
         cdOverlay.style.display = "flex";
         let count = 3; cdOverlay.innerText = count;
-        let cdInterval = setInterval(() => {
+        let t = setInterval(() => {
             count--;
             if(count > 0) cdOverlay.innerText = count;
             else if(count === 0) cdOverlay.innerText = "GO!";
-            else { clearInterval(cdInterval); cdOverlay.style.display = "none"; runGame(); }
+            else { clearInterval(t); cdOverlay.style.display = "none"; runGame(); }
         }, 800);
     }
 
@@ -237,6 +232,7 @@
     }
 
     function nextStage() {
+        gameActive = false; clearInterval(gameTimer); clearTimeout(moleTimer);
         stage++; time = 20; speed = Math.max(650, speed * 0.85);
         showFullOverlay("STAGE " + stage, "rgba(255, 152, 0, 0.4)");
         setTimeout(runGame, 1200);
@@ -248,6 +244,15 @@
         gameActive = false; clearInterval(gameTimer); clearTimeout(moleTimer);
         document.getElementById("finalScore").innerText = `최종 점수: ${score}점 (Stage ${stage})`;
         document.getElementById("gameOverScreen").style.display = "flex";
+    }
+
+    // 서비스 워커 등록 (PWA 설치를 위해 필수!)
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./service-worker.js')
+                .then(reg => console.log('서비스 워커 등록 성공!', reg))
+                .catch(err => console.log('등록 실패:', err));
+        });
     }
 </script>
 </body>
