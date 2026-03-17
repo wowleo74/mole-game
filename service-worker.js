@@ -1,4 +1,4 @@
-const cacheName = "molegame-v2"; // 버전을 v2로 올려서 새 코드를 반영합니다.
+const cacheName = "molegame-v5"; // 버전을 v2로 올려서 새 코드를 반영합니다.
 
 const filesToCache = [
   "./",
