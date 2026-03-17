@@ -1,120 +1,91 @@
 <!DOCTYPE html>
-<html>
+<html lang="ko">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>시은가은 두더지게임</title>
-<link rel="manifest" href="manifest.json">
-<style>
-    body {
-        text-align: center; font-family: 'Nanum Gothic', sans-serif;
-        background: linear-gradient(#87CEEB, #e0f7ff); margin: 0; padding: 0;
-        touch-action: none; user-select: none;
-    }
-    h2 { margin-top: 20px; font-size: 28px; color: #333; }
-    #info {
-        font-size: 16px; margin: 10px; background: white; display: inline-block;
-        padding: 8px 15px; border-radius: 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        font-weight: bold;
-    }
-    #board {
-        width: 92vw; max-width: 400px; margin: 10px auto;
-        display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
-    }
-    .hole {
-        width: 100%; aspect-ratio: 1/1; background: radial-gradient(circle, #7a451e, #3b1f0f);
-        border-radius: 50%; position: relative; overflow: hidden;
-    }
-    .hole img, .hole .char-box {
-        width: 85%; height: 85%; position: absolute; bottom: -100%; left: 7.5%;
-        transition: bottom 0.1s; pointer-events: none;
-    }
-    .hole.up img, .hole.up .char-box { bottom: 10%; }
-    .char-box { display: flex; align-items: center; justify-content: center; font-size: 50px; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>시은가은 두더지게임</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        body { text-align: center; font-family: 'Nanum Gothic', sans-serif; background: #b3e5fc; margin: 0; padding: 0; touch-action: none; user-select: none; }
+        h2 { margin-top: 15px; color: #333; font-size: 26px; }
+        
+        /* 상단 상태창 디자인 */
+        #status-container { display: flex; justify-content: center; gap: 8px; margin: 10px auto; max-width: 400px; }
+        .status-box { background: white; padding: 8px 12px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); flex: 1; }
+        .label { font-size: 11px; color: #666; font-weight: bold; margin-bottom: 4px; text-transform: uppercase; }
+        .value { font-size: 18px; font-weight: 900; color: #333; }
+        .hearts { font-size: 16px; letter-spacing: 2px; }
 
-    /* 점수 및 콤보 팝업 */
-    .scorePopup {
-        position: fixed; font-size: 35px; font-weight: bold; z-index: 5000;
-        pointer-events: none; animation: popUpAnim 0.8s ease-out forwards;
-    }
-    @keyframes popUpAnim {
-        0% { transform: translate(-50%, 0) scale(0.5); opacity: 0; }
-        30% { opacity: 1; }
-        100% { transform: translate(-50%, -80px) scale(1.2); opacity: 0; }
-    }
-    button {
-        font-size: 20px; padding: 12px 30px; margin-top: 10px; border: none;
-        border-radius: 50px; background: #ff9800; color: white; font-weight: bold;
-        box-shadow: 0 4px 0 #e68a00;
-    }
-    .overlay {
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        display: none; justify-content: center; align-items: center;
-        flex-direction: column; color: white; background: rgba(0,0,0,0.8); z-index: 2000;
-    }
-    #comboMsg {
-        position: fixed; top: 40%; left: 50%; transform: translate(-50%, -50%);
-        font-size: 50px; font-weight: 900; color: #fff; text-shadow: 0 0 15px #ff9800;
-        z-index: 6000; pointer-events: none; display: none;
-        animation: comboAnim 0.5s ease-out;
-    }
-    @keyframes comboAnim { 0% { scale: 0.5; opacity: 0; } 100% { scale: 1.2; opacity: 1; } }
-</style>
+        #board { width: 92vw; max-width: 400px; margin: 15px auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .hole { width: 100%; aspect-ratio: 1/1; background: radial-gradient(circle, #7a451e, #3b1f0f); border-radius: 50%; position: relative; overflow: hidden; }
+        .hole img, .hole .heart-item { width: 85%; height: 85%; position: absolute; bottom: -100%; left: 7.5%; transition: bottom 0.1s; pointer-events: none; }
+        .hole.up img, .hole.up .heart-item { bottom: 10%; }
+        .heart-item { display: flex; align-items: center; justify-content: center; font-size: 50px; }
+
+        /* 콤보 및 점수 팝업 */
+        .scorePopup { position: fixed; font-size: 35px; font-weight: bold; z-index: 5000; pointer-events: none; animation: popUp 0.8s ease-out forwards; }
+        @keyframes popUp { 0% { transform: translate(-50%, 0) scale(0.5); opacity: 0; } 30% { opacity: 1; } 100% { transform: translate(-50%, -80px) scale(1.2); opacity: 0; } }
+        #comboMsg { position: fixed; top: 40%; left: 50%; transform: translate(-50%, -50%); font-size: 55px; font-weight: 900; color: white; text-shadow: 0 0 15px #ff9800; z-index: 6000; pointer-events: none; display: none; }
+
+        button { font-size: 20px; padding: 12px 40px; border-radius: 50px; background: #ff9800; color: white; border: none; font-weight: bold; box-shadow: 0 5px 0 #e68a00; cursor: pointer; }
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: none; justify-content: center; align-items: center; flex-direction: column; color: white; background: rgba(0,0,0,0.85); z-index: 2000; }
+    </style>
 </head>
 <body>
 
 <h2>시은가은 두더지게임</h2>
-<div id="info">
-    Stage: <span id="stage">1</span> | 점수: <span id="score">0</span><br>
-    시간: <span id="time">20</span> | 아빠: <span id="dad" style="color:red">0</span>/3
+
+<div id="status-container">
+    <div class="status-box"><div class="label">STAGE</div><div id="stage" class="value">1</div></div>
+    <div class="status-box"><div class="label">SCORE</div><div id="score" class="value">0</div></div>
+    <div class="status-box"><div class="label">TIME</div><div id="time" class="value">20</div></div>
+    <div class="status-box"><div class="label">LIFE</div><div id="life" class="hearts">❤️❤️❤️</div></div>
 </div>
+
 <div id="board"></div>
 <button id="startBtn" onclick="startCountdown()">게임 시작</button>
 
 <div id="comboMsg"></div>
-
+<div id="countdown" class="overlay" style="font-size: 100px; color: gold;"></div>
 <div id="gameOverScreen" class="overlay">
-    <h1>게임 종료</h1>
-    <p id="finalScore" style="font-size: 22px;"></p>
+    <h1>GAME OVER</h1>
+    <p id="finalScore" style="font-size: 24px;"></p>
     <button onclick="location.reload()">다시하기</button>
 </div>
 
-<div id="countdown" class="overlay" style="font-size: 100px; color: gold;"></div>
-
 <script>
-let score = 0, time = 20, stage = 1, speed = 1200, dadHit = 0, combo = 0;
+let score = 0, time = 20, stage = 1, speed = 1200, lives = 3, combo = 0;
 let gameTimer, moleTimer, audioCtx = null;
 
+// 구멍 생성 및 터치 이벤트
 for(let i=0; i<9; i++){
     let hole = document.createElement("div");
     hole.className = "hole";
-    hole.innerHTML = `<img src="" id="img${i}"><div class="char-box" id="box${i}"></div>`;
-    const press = (e) => {
+    hole.innerHTML = `<img src="" id="img${i}"><div class="heart-item" id="hItem${i}">❤️</div>`;
+    const action = (e) => {
         e.preventDefault();
-        const touch = e.touches ? e.touches[0] : e;
-        handleCatch(hole, touch.clientX, touch.clientY);
+        const t = e.touches ? e.touches[0] : e;
+        handleCatch(hole, t.clientX, t.clientY);
     };
-    hole.addEventListener('touchstart', press, {passive:false});
-    hole.addEventListener('mousedown', press);
+    hole.addEventListener('touchstart', action, {passive:false});
+    hole.addEventListener('mousedown', action);
     board.appendChild(hole);
 }
 
 function handleCatch(hole, x, y) {
     if(!hole.classList.contains('up')) return;
     let type = hole.dataset.type;
-    if(!type) return;
-
     hole.classList.remove('up');
     hole.dataset.type = "";
 
-    let text = "", color = "yellow";
-    
+    let text = "", color = "white";
+
     if(type === "heart") {
-        dadHit = Math.max(0, dadHit - 1);
+        lives = Math.min(3, lives + 1);
         text = "LIFE UP! ❤️"; color = "#ff5252";
         playSound(1000);
     } else if(type === "dad") {
-        combo = 0; dadHit++;
+        lives--; combo = 0;
         text = "아야!"; color = "red";
         playSound(200);
         if(navigator.vibrate) navigator.vibrate(200);
@@ -122,31 +93,36 @@ function handleCatch(hole, x, y) {
         combo++;
         let pts = (type === "doll") ? 20 : 10;
         score += pts;
-        text = "+" + pts; color = (type === "doll") ? "lime" : "white";
+        text = "+" + pts; color = (type === "doll") ? "#00ff00" : "yellow";
         playSound(600 + (Math.min(combo, 10) * 40));
-        
         if(combo >= 3 && combo % 3 === 0) showCombo(combo);
     }
 
-    document.getElementById("score").innerText = score;
-    document.getElementById("dad").innerText = dadHit;
-    showScorePopup(x, y, text, color);
-    if(dadHit >= 3) gameOver();
+    updateUI();
+    showPopup(x, y, text, color);
+    if(lives <= 0) gameOver();
 }
 
 function showCombo(n) {
     const m = document.getElementById("comboMsg");
     m.innerText = n + " COMBO!";
     m.style.display = "block";
-    setTimeout(() => { m.style.display = "none"; }, 800);
+    setTimeout(() => m.style.display = "none", 800);
 }
 
-function showScorePopup(x, y, text, color) {
+function showPopup(x, y, text, color) {
     let p = document.createElement("div");
     p.className = "scorePopup"; p.innerText = text; p.style.color = color;
     p.style.left = x + "px"; p.style.top = y + "px";
     document.body.appendChild(p);
     setTimeout(() => p.remove(), 800);
+}
+
+function updateUI() {
+    document.getElementById("score").innerText = score;
+    document.getElementById("time").innerText = time;
+    document.getElementById("stage").innerText = stage;
+    document.getElementById("life").innerText = "❤️".repeat(lives) + "🖤".repeat(3 - lives);
 }
 
 function playSound(freq) {
@@ -168,16 +144,16 @@ function startCountdown() {
     const cd = document.getElementById("countdown");
     cd.style.display = "flex";
     cd.innerText = count;
-    let timer = setInterval(() => {
+    let t = setInterval(() => {
         count--;
         if(count > 0) cd.innerText = count;
-        else if(count === 0) cd.innerText = "GO!";
-        else { clearInterval(timer); cd.style.display = "none"; startGame(); }
+        else if(count === 0) cd.innerText = "START!";
+        else { clearInterval(t); cd.style.display = "none"; startGame(); }
     }, 800);
 }
 
 function startGame() {
-    score = 0; time = 20; stage = 1; speed = 1200; dadHit = 0; combo = 0;
+    score = 0; time = 20; stage = 1; speed = 1200; lives = 3; combo = 0;
     updateUI(); runTimers();
 }
 
@@ -196,12 +172,12 @@ function runTimers() {
 function nextStage() {
     stage++; speed = Math.max(650, speed * 0.85); time = 20;
     alert("축하합니다! STAGE " + stage);
-    updateUI(); runTimers();
+    updateUI();
 }
 
 function showCharacter() {
     const holes = document.querySelectorAll(".hole");
-    holes.forEach(h => { h.classList.remove('up'); h.dataset.type=""; });
+    holes.forEach(h => { h.classList.remove('up'); });
 
     let count = stage >= 4 ? 2 : 1;
     let used = [];
@@ -211,30 +187,23 @@ function showCharacter() {
         used.push(idx);
 
         let r = Math.random(), type, content, isImg = true;
-        if(r < 0.05) { type = "heart"; content = "❤️"; isImg = false; }
+        if(r < 0.05) { type = "heart"; isImg = false; }
         else if(r < 0.3) { type = "sieun"; content = "sieun.png"; }
         else if(r < 0.55) { type = "gaeun"; content = "gaeun.png"; }
         else if(r < 0.75) { type = "doll"; content = "doll.png"; }
         else { type = "dad"; content = "dad.png"; }
 
-        const hole = holes[idx];
-        const imgTag = hole.querySelector("img");
-        const boxTag = hole.querySelector(".char-box");
+        const h = holes[idx];
+        const img = h.querySelector("img");
+        const heart = h.querySelector(".heart-item");
         
-        if(isImg) { imgTag.src = content; imgTag.style.display="block"; boxTag.style.display="none"; }
-        else { boxTag.innerText = content; boxTag.style.display="flex"; imgTag.style.display="none"; }
+        if(isImg) { img.src = content; img.style.display="block"; heart.style.display="none"; }
+        else { img.style.display="none"; heart.style.display="flex"; }
         
-        hole.dataset.type = type;
-        setTimeout(() => { hole.classList.add('up'); }, 50);
-        setTimeout(() => { hole.classList.remove('up'); }, speed);
+        h.dataset.type = type;
+        setTimeout(() => h.classList.add('up'), 50);
+        setTimeout(() => h.classList.remove('up'), speed);
     }
-}
-
-function updateUI() {
-    document.getElementById("score").innerText = score;
-    document.getElementById("time").innerText = time;
-    document.getElementById("stage").innerText = stage;
-    document.getElementById("dad").innerText = dadHit;
 }
 
 function gameOver() {
