@@ -1,501 +1,298 @@
-
 <!DOCTYPE html>
-<html>
+<html lang="ko">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>시은가은 두더지게임</title>
+    <style>
+        :root {
+            --primary: #FF9800; --danger: #FF5252;
+            --bg-grad: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%);
+        }
+        body {
+            text-align: center; font-family: 'Nanum Gothic', sans-serif;
+            background: var(--bg-grad); margin: 0; padding: 0;
+            height: 100vh; overflow: hidden; touch-action: manipulation; user-select: none;
+        }
+        h2 { margin: 15px 0; color: #333; font-size: 26px; }
+        
+        #info-container { display: flex; justify-content: center; gap: 8px; margin-bottom: 10px; }
+        .info-card {
+            background: rgba(255, 255, 255, 0.9); padding: 6px 10px; border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); font-weight: bold; min-width: 55px;
+        }
+        .info-label { font-size: 10px; color: #666; display: block; }
+        
+        #board {
+            width: 92vw; max-width: 380px; margin: 5px auto;
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+        }
+        .hole {
+            width: 100%; aspect-ratio: 1/1; background: #5d4037; border-radius: 50%;
+            position: relative; overflow: hidden; box-shadow: inset 0 8px 15px rgba(0,0,0,0.5);
+        }
+        .character {
+            width: 80%; height: 80%; position: absolute; bottom: -100%; left: 10%;
+            transition: bottom 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex; align-items: center; justify-content: center; font-size: 45px;
+        }
+        .character img { width: 100%; height: 100%; object-fit: contain; }
+        .hole.up .character { bottom: 15%; }
+        
+        /* 점수 팝업 애니메이션 */
+        .effect-text {
+            position: fixed; pointer-events: none; font-weight: 900; z-index: 3000;
+            font-size: 28px; text-shadow: 2px 2px 0 white;
+            animation: scorePop 0.8s ease-out forwards;
+        }
+        @keyframes scorePop {
+            0% { transform: translate(-50%, 0) scale(0.5); opacity: 0; }
+            30% { opacity: 1; }
+            100% { transform: translate(-50%, -70px) scale(1.2); opacity: 0; }
+        }
 
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+        /* 콤보 및 스테이지 알림 */
+        .full-overlay-msg {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            display: none; justify-content: center; align-items: center;
+            z-index: 4000; pointer-events: none;
+        }
+        .msg-content {
+            font-size: 60px; font-weight: 900; color: white;
+            text-shadow: 4px 4px 10px rgba(0,0,0,0.5);
+            animation: msgZoom 1s ease-out forwards;
+        }
+        @keyframes msgZoom {
+            0% { transform: scale(0.3); opacity: 0; }
+            50% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); opacity: 0; }
+        }
 
-<title>시은가은 두더지게임</title>
-
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#ff9800">
-
-<style>
-
-body{
-text-align:center;
-font-family:Arial;
-background:linear-gradient(#87CEEB,#e0f7ff);
-margin:0;
-padding:0;
-touch-action:manipulation;
-}
-
-.dadCount{
-color:red;
-font-weight:bold;
-font-size:22px;
-}
-
-h2{
-margin-top:20px;
-font-size:30px;
-}
-
-#info{
-font-size:20px;
-margin:15px;
-background:white;
-display:inline-block;
-padding:10px 20px;
-border-radius:12px;
-box-shadow:0 4px 8px rgba(0,0,0,0.2);
-}
-
-#board{
-width:95vw;
-max-width:420px;
-margin:20px auto;
-display:grid;
-grid-template-columns:repeat(3,1fr);
-gap:4vw;
-}
-
-.hole{
-width:100%;
-aspect-ratio:1/1;
-background:radial-gradient(circle,#7a451e,#3b1f0f);
-border-radius:25px;
-display:flex;
-align-items:center;
-justify-content:center;
-cursor:pointer;
-overflow:hidden;
-
-box-shadow:
-inset 0 8px 15px rgba(0,0,0,0.5),
-0 6px 10px rgba(0,0,0,0.3);
-}
-
-.hole img{
-width:70%;
-height:70%;
-object-fit:contain;
-pointer-events:none;
-animation:popUp 0.15s ease;
-}
-
-@keyframes popUp{
-0%{transform:scale(0);}
-100%{transform:scale(1);}
-}
-
-button{
-font-size:22px;
-padding:14px 34px;
-margin-top:15px;
-border:none;
-border-radius:12px;
-background:#ff9800;
-color:white;
-font-weight:bold;
-}
-
-.scorePopup{
-position:fixed;
-font-size:40px;
-font-weight:bold;
-animation:pop 0.8s ease forwards;
-pointer-events:none;
-}
-
-@keyframes pop{
-0%{transform:translateY(10px);opacity:0;}
-100%{transform:translateY(-50px);opacity:1;}
-}
-
-#gameOverScreen{
-position:fixed;
-top:0;
-left:0;
-width:100%;
-height:100%;
-background:rgba(0,0,0,0.7);
-color:white;
-display:none;
-justify-content:center;
-align-items:center;
-flex-direction:column;
-font-size:28px;
-z-index:999;
-}
-
-#countdown{
-position:fixed;
-top:0;
-left:0;
-width:100%;
-height:100%;
-display:none;
-justify-content:center;
-align-items:center;
-font-size:80px;
-font-weight:bold;
-color:white;
-background:rgba(0,0,0,0.6);
-z-index:998;
-}
-
-#stagePopup{
-position:fixed;
-top:0;
-left:0;
-width:100%;
-height:100%;
-display:none;
-justify-content:center;
-align-items:center;
-font-size:60px;
-font-weight:bold;
-color:white;
-background:rgba(0,0,0,0.6);
-z-index:1000;
-}
-</style>
+        .main-btn {
+            background: var(--primary); color: white; border: none; padding: 12px 35px;
+            font-size: 20px; font-weight: bold; border-radius: 50px; box-shadow: 0 5px 0 #e68a00;
+            margin-top: 15px; cursor: pointer;
+        }
+        .overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); display: none; justify-content: center;
+            align-items: center; flex-direction: column; color: white; z-index: 1500;
+        }
+    </style>
 </head>
-
 <body>
 
-<h2>시은가은 두더지게임</h2>
+    <h2>시은가은 두더지게임</h2>
 
-<div id="info">
+    <div id="info-container">
+        <div class="info-card"><span class="info-label">STAGE</span><span id="stage">1</span></div>
+        <div class="info-card"><span class="info-label">SCORE</span><span id="score">0</span></div>
+        <div class="info-card"><span class="info-label">TIME</span><span id="time">20</span></div>
+        <div class="info-card"><span class="info-label">LIFE</span><span id="life" style="color:red">❤️❤️❤️</span></div>
+    </div>
 
-Stage : <span id="stage">1</span> |
-점수 : <span id="score">0</span> |
-최고점수 : <span id="best">0</span> |
-시간 : <span id="time">30</span>
-아빠 : <span id="dad" class="dadCount">0</span>/3 |
-</div>
+    <div id="board"></div>
+    <button id="startBtn" class="main-btn" onclick="initGame()">게임 시작!</button>
 
-<div id="board"></div>
+    <div id="fullOverlay" class="full-overlay-msg">
+        <div id="msgText" class="msg-content">STAGE 2</div>
+    </div>
 
-<button onclick="startCountdown()">게임 시작</button>
+    <div id="gameOverScreen" class="overlay">
+        <h1 style="font-size: 40px; color: var(--danger);">GAME OVER</h1>
+        <p id="finalScore" style="font-size: 20px; margin-bottom: 20px;"></p>
+        <button class="main-btn" onclick="initGame()">다시 도전!</button>
+    </div>
 
-<div id="gameOverScreen">
-<h1>게임 종료</h1>
-<p id="finalScore"></p>
-<button onclick="restartGame()">다시하기</button>
-</div>
-
-<div id="countdown"></div>
-<div id="stagePopup"></div>
+    <div id="startCountdown" class="overlay" style="font-size: 100px; color: gold; font-weight: bold;"></div>
 
 <script>
-
-let score=0
-let time=20
-let stage=1
-let speed=900
-let dadHit=0
-
-let gameTimer
-let moleTimer
-
-const board=document.getElementById("board")
-
-let bestScore=localStorage.getItem("bestScore") || 0
-document.getElementById("best").innerText=bestScore
-
-let bestStage=localStorage.getItem("bestStage") || 0
-
-let audioCtx=null
-
-function playSound(freq){
-
-try{
-
-if(!audioCtx){
-audioCtx=new(window.AudioContext||window.webkitAudioContext)()
-}
-
-const osc=audioCtx.createOscillator()
-const gain=audioCtx.createGain()
-
-osc.connect(gain)
-gain.connect(audioCtx.destination)
-
-osc.frequency.value=freq
-osc.start()
-
-gain.gain.exponentialRampToValueAtTime(
-0.00001,
-audioCtx.currentTime+0.2
-)
-
-osc.stop(audioCtx.currentTime+0.2)
-
-}catch(e){}
-
-}
-
-function showScore(hole,text,color){
-
-let rect=hole.getBoundingClientRect()
-
-let popup=document.createElement("div")
-popup.className="scorePopup"
-popup.innerText=text
-popup.style.color=color
-
-popup.style.left=(rect.left+rect.width/2)+"px"
-popup.style.top=(rect.top+rect.height/2)+"px"
-
-document.body.appendChild(popup)
-
-setTimeout(()=>popup.remove(),800)
-
-}
-
-function showStage(){
-
-const popup=document.getElementById("stagePopup")
-
-popup.innerText="STAGE "+stage
-popup.style.display="flex"
-
-setTimeout(()=>{
-popup.style.display="none"
-},1200)
-
-}
-
-for(let i=0;i<9;i++){
-
-let hole=document.createElement("div")
-hole.className="hole"
-
-hole.onclick=()=>{
-
-let type=hole.dataset.type
-if(!type) return
-
-if(type=="sieun"){
-score+=10
-playSound(700)
-showScore(hole,"+10","yellow")
-}
-
-if(type=="gaeun"){
-score+=10
-playSound(700)
-showScore(hole,"+10","yellow")
-}
-
-if(type=="doll"){
-score+=20
-playSound(1000)
-showScore(hole,"+20","lime")
-}
-
-if(type=="dad"){
-
-score-=20
-dadHit++
-
-playSound(200)
-showScore(hole,"-20","red")
-
-if(navigator.vibrate){
-navigator.vibrate([100,50,100])
-}
-
-document.getElementById("dad").innerText=dadHit
-
-if(dadHit>=3){
-gameOver()
-}
-
-}
-
-document.getElementById("score").innerText=score
-
-hole.innerHTML=""
-hole.dataset.type=""
-
-}
-
-board.appendChild(hole)
-
-}
-
-function startCountdown(){
-
-let count=3
-const countdown=document.getElementById("countdown")
-
-countdown.style.display="flex"
-countdown.innerText=count
-
-let timer=setInterval(()=>{
-
-count--
-
-if(count>0){
-countdown.innerText=count
-}
-else if(count===0){
-countdown.innerText="START"
-}
-else{
-clearInterval(timer)
-countdown.style.display="none"
-startGame()
-}
-
-},1000)
-
-}
-
-function startGame(){
-
-score=0
-time=20
-stage=1
-speed=900
-dadHit=0
-
-document.getElementById("score").innerText=score
-document.getElementById("time").innerText=time
-document.getElementById("stage").innerText=stage
-document.getElementById("dad").innerText=dadHit
-
-clearInterval(gameTimer)
-clearInterval(moleTimer)
-
-gameTimer=setInterval(()=>{
-
-time--
-document.getElementById("time").innerText=time
-
-if(time<=0){
-
-if(score < 100){
-gameOver()
-}else{
-nextStage()
-}
-
-}
-
-},1000)
-
-moleTimer=setInterval(showCharacter,speed)
-
-}
-
-function nextStage(){
-
-if(stage >= 10){
-gameOver()
-return
-}
-
-stage++
-speed -= 50
-time=20
-
-showStage()
-
-document.getElementById("stage").innerText=stage
-document.getElementById("time").innerText=time
-
-clearInterval(moleTimer)
-moleTimer=setInterval(showCharacter,speed)
-
-}
-
-function gameOver(){
-
-clearInterval(gameTimer)
-clearInterval(moleTimer)
-
-if(score>bestScore){
-bestScore=score
-localStorage.setItem("bestScore",bestScore)
-document.getElementById("best").innerText=bestScore
-}
-
-if(stage>bestStage){
-bestStage=stage
-localStorage.setItem("bestStage",bestStage)
-}
-
-document.getElementById("finalScore").innerText=
-"점수 : "+score+
-"\nStage : "+stage+
-"\n최고 Stage : "+bestStage
-
-document.getElementById("gameOverScreen").style.display="flex"
-
-}
-
-function restartGame(){
-
-document.getElementById("gameOverScreen").style.display="none"
-startCountdown()
-
-}
-
-function showCharacter(){
-
-const holes=document.querySelectorAll(".hole")
-
-holes.forEach(h=>{
-h.innerHTML=""
-h.dataset.type=""
-})
-
-let count = stage >=4 ? 2 : 1
-
-let used=[]
-
-for(let i=0;i<count;i++){
-
-let randomHole
-
-do{
-randomHole=Math.floor(Math.random()*9)
-}while(used.includes(randomHole))
-
-used.push(randomHole)
-
-let r=Math.random()
-
-let dadChance = 0.05 + (stage-1)*0.02
-if(dadChance>0.25) dadChance=0.25
-
-let img=""
-let type=""
-
-if(r<0.35){
-img="sieun.png"
-type="sieun"
-}
-else if(r<0.70){
-img="gaeun.png"
-type="gaeun"
-}
-else if(r < 1-dadChance){
-img="doll.png"
-type="doll"
-}
-else{
-img="dad.png"
-type="dad"
-}
-
-holes[randomHole].innerHTML="<img src='"+img+"'>"
-holes[randomHole].dataset.type=type
-
-}
-
-}
-
-if("serviceWorker" in navigator){
-navigator.serviceWorker.register("service-worker.js")
-}
-
+    let score = 0, time = 20, stage = 1, speed = 1400, life = 3, combo = 0;
+    let gameActive = false, gameTimer = null, moleTimer = null, audioCtx = null;
+
+    const board = document.getElementById("board");
+
+    for(let i=0; i<9; i++) {
+        let hole = document.createElement("div");
+        hole.className = "hole";
+        hole.innerHTML = `<div class="character"></div>`;
+        hole.onclick = (e) => handleCatch(hole, e);
+        board.appendChild(hole);
+    }
+
+    function handleCatch(hole, e) {
+        if(!gameActive || !hole.classList.contains('up')) return;
+        const type = hole.dataset.type;
+        hole.classList.remove('up');
+
+        let text = ""; let color = "yellow";
+
+        if(type === "dad") {
+            combo = 0; // 콤보 초기화
+            life--; text = "아야!"; color = "red";
+            playSound(200, 'sawtooth');
+            if(navigator.vibrate) navigator.vibrate(200);
+            if(life <= 0) gameOver();
+        } else if(type === "heart") {
+            if(life < 3) life++; text = "LIFE UP!"; color = "#ff5252";
+            playSound(1200);
+        } else {
+            combo++;
+            let points = (type === "doll") ? 20 : 10;
+            score += points; text = `+${points}`;
+            playSound(600 + (combo * 30));
+            
+            // 3단위 콤보 알림
+            if(combo >= 3 && combo % 3 === 0) {
+                showFullOverlay(combo + " COMBO!", "rgba(255, 255, 255, 0.1)");
+            }
+        }
+        
+        updateUI();
+        showScorePopup(e.clientX, e.clientY, text, color);
+        hole.dataset.type = ""; 
+    }
+
+    function showScorePopup(x, y, text, color) {
+        const el = document.createElement("div");
+        el.className = "effect-text";
+        el.innerText = text; el.style.color = color;
+        el.style.left = x + "px"; el.style.top = y + "px";
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 800);
+    }
+
+    function showFullOverlay(text, bgColor) {
+        const overlay = document.getElementById("fullOverlay");
+        const msgText = document.getElementById("msgText");
+        overlay.style.backgroundColor = bgColor;
+        msgText.innerText = text;
+        overlay.style.display = "flex";
+        setTimeout(() => { overlay.style.display = "none"; }, 1000);
+    }
+
+    function initGame() {
+        score = 0; stage = 1; speed = 1400; life = 3; combo = 0; time = 20;
+        document.getElementById("gameOverScreen").style.display = "none";
+        document.getElementById("startBtn").style.display = "none";
+        
+        if(gameTimer) clearInterval(gameTimer);
+        if(moleTimer) clearTimeout(moleTimer);
+        
+        const cdOverlay = document.getElementById("startCountdown");
+        cdOverlay.style.display = "flex";
+        let count = 3;
+        cdOverlay.innerText = count;
+
+        let cdInterval = setInterval(() => {
+            count--;
+            if(count > 0) cdOverlay.innerText = count;
+            else if(count === 0) cdOverlay.innerText = "GO!";
+            else {
+                clearInterval(cdInterval);
+                cdOverlay.style.display = "none";
+                runGame();
+            }
+        }, 800);
+    }
+
+    function nextStage() {
+        gameActive = false;
+        clearInterval(gameTimer);
+        clearTimeout(moleTimer);
+        
+        stage++;
+        time = 20; 
+        speed = Math.max(400, speed * 0.8);
+        updateUI();
+
+        showFullOverlay("STAGE " + stage, "rgba(255, 152, 0, 0.4)");
+        playSound(1000); playSound(1300);
+
+        setTimeout(() => {
+            runGame(); 
+        }, 1200);
+    }
+
+    function runGame() {
+        gameActive = true;
+        updateUI();
+        
+        gameTimer = setInterval(() => {
+            time--;
+            document.getElementById("time").innerText = time;
+            if(time <= 0) {
+                gameActive = false;
+                clearInterval(gameTimer);
+                clearTimeout(moleTimer);
+                
+                if(score >= stage * 70) nextStage();
+                else gameOver();
+            }
+        }, 1000);
+        spawnLoop();
+    }
+
+    function spawnLoop() {
+        if(!gameActive) return;
+        showCharacters();
+        moleTimer = setTimeout(spawnLoop, speed);
+    }
+
+    function showCharacters() {
+        const holes = document.querySelectorAll(".hole");
+        holes.forEach(h => h.classList.remove('up'));
+        
+        let count = (stage >= 4 && Math.random() > 0.6) ? 2 : 1;
+        let chosen = [];
+        for(let i=0; i<count; i++) {
+            let idx;
+            do { idx = Math.floor(Math.random() * 9); } while(chosen.includes(idx));
+            chosen.push(idx);
+            
+            const hole = holes[idx];
+            const charDiv = hole.querySelector(".character");
+            const r = Math.random();
+            let type, content;
+            
+            if (r < 0.05) { type = "heart"; content = "❤️"; }
+            else if (r < 0.20) { type = "dad"; content = "<img src='dad.png' onerror='this.outerHTML=\"👨\"'>"; }
+            else if (r < 0.45) { type = "sieun"; content = "<img src='sieun.png' onerror='this.outerHTML=\"👧\"'>"; }
+            else if (r < 0.70) { type = "gaeun"; content = "<img src='gaeun.png' onerror='this.outerHTML=\"👧\"'>"; }
+            else { type = "doll"; content = "<img src='doll.png' onerror='this.outerHTML=\"🧸\"'>"; }
+            
+            hole.dataset.type = type; charDiv.innerHTML = content;
+            setTimeout(() => { if(gameActive) hole.classList.add('up'); }, 50);
+            setTimeout(() => { if(hole.dataset.type === type) hole.classList.remove('up'); }, speed * 0.85);
+        }
+    }
+
+    function updateUI() {
+        document.getElementById("stage").innerText = stage;
+        document.getElementById("score").innerText = score;
+        document.getElementById("time").innerText = time;
+        document.getElementById("life").innerText = "❤️".repeat(life) + "🖤".repeat(3-life);
+    }
+
+    function gameOver() {
+        gameActive = false;
+        clearInterval(gameTimer);
+        clearTimeout(moleTimer);
+        document.getElementById("finalScore").innerText = `최종 점수: ${score}점 (Stage ${stage})`;
+        document.getElementById("gameOverScreen").style.display = "flex";
+    }
+
+    function playSound(freq, type='sine') {
+        try {
+            if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type; osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.frequency.value = freq; osc.start();
+            gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.2);
+            osc.stop(audioCtx.currentTime + 0.2);
+        } catch(e) {}
+    }
 </script>
 </body>
 </html>
