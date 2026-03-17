@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>시은가은 두더지게임</title>
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#ff9800">
 <style>
     body {
         text-align: center; font-family: 'Nanum Gothic', sans-serif;
@@ -18,7 +17,6 @@
         padding: 8px 15px; border-radius: 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         font-weight: bold;
     }
-    .dadCount { color: red; }
     #board {
         width: 92vw; max-width: 400px; margin: 10px auto;
         display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
@@ -26,15 +24,15 @@
     .hole {
         width: 100%; aspect-ratio: 1/1; background: radial-gradient(circle, #7a451e, #3b1f0f);
         border-radius: 50%; position: relative; overflow: hidden;
-        box-shadow: inset 0 8px 15px rgba(0,0,0,0.5);
     }
-    .hole img {
+    .hole img, .hole .char-box {
         width: 85%; height: 85%; position: absolute; bottom: -100%; left: 7.5%;
-        transition: bottom 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.2);
-        pointer-events: none;
+        transition: bottom 0.1s; pointer-events: none;
     }
-    .hole.up img { bottom: 10%; }
-    
+    .hole.up img, .hole.up .char-box { bottom: 10%; }
+    .char-box { display: flex; align-items: center; justify-content: center; font-size: 50px; }
+
+    /* 점수 및 콤보 팝업 */
     .scorePopup {
         position: fixed; font-size: 35px; font-weight: bold; z-index: 5000;
         pointer-events: none; animation: popUpAnim 0.8s ease-out forwards;
@@ -47,53 +45,57 @@
     button {
         font-size: 20px; padding: 12px 30px; margin-top: 10px; border: none;
         border-radius: 50px; background: #ff9800; color: white; font-weight: bold;
-        box-shadow: 0 4px 0 #e68a00; cursor: pointer;
+        box-shadow: 0 4px 0 #e68a00;
     }
     .overlay {
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
         display: none; justify-content: center; align-items: center;
         flex-direction: column; color: white; background: rgba(0,0,0,0.8); z-index: 2000;
     }
-    #stagePopup { font-size: 60px; font-weight: 900; text-shadow: 2px 2px 10px rgba(0,0,0,0.5); }
+    #comboMsg {
+        position: fixed; top: 40%; left: 50%; transform: translate(-50%, -50%);
+        font-size: 50px; font-weight: 900; color: #fff; text-shadow: 0 0 15px #ff9800;
+        z-index: 6000; pointer-events: none; display: none;
+        animation: comboAnim 0.5s ease-out;
+    }
+    @keyframes comboAnim { 0% { scale: 0.5; opacity: 0; } 100% { scale: 1.2; opacity: 1; } }
 </style>
 </head>
 <body>
 
 <h2>시은가은 두더지게임</h2>
-
 <div id="info">
     Stage: <span id="stage">1</span> | 점수: <span id="score">0</span><br>
-    시간: <span id="time">20</span> | 아빠: <span id="dad" class="dadCount">0</span>/3
+    시간: <span id="time">20</span> | 아빠: <span id="dad" style="color:red">0</span>/3
 </div>
-
 <div id="board"></div>
 <button id="startBtn" onclick="startCountdown()">게임 시작</button>
 
+<div id="comboMsg"></div>
+
 <div id="gameOverScreen" class="overlay">
     <h1>게임 종료</h1>
-    <p id="finalScore" style="font-size: 22px; text-align: center;"></p>
-    <button onclick="restartGame()">다시하기</button>
+    <p id="finalScore" style="font-size: 22px;"></p>
+    <button onclick="location.reload()">다시하기</button>
 </div>
 
 <div id="countdown" class="overlay" style="font-size: 100px; color: gold;"></div>
-<div id="stagePopup" class="overlay"></div>
 
 <script>
-let score = 0, time = 20, stage = 1, speed = 1200, dadHit = 0;
+let score = 0, time = 20, stage = 1, speed = 1200, dadHit = 0, combo = 0;
 let gameTimer, moleTimer, audioCtx = null;
-let bestScore = localStorage.getItem("bestScore") || 0;
 
-// 구멍 생성 및 클릭 이벤트
 for(let i=0; i<9; i++){
     let hole = document.createElement("div");
     hole.className = "hole";
-    hole.innerHTML = `<img src="" id="img${i}">`;
-    
-    // 반응 속도가 빠른 pointerdown 사용
-    hole.onpointerdown = (e) => {
+    hole.innerHTML = `<img src="" id="img${i}"><div class="char-box" id="box${i}"></div>`;
+    const press = (e) => {
         e.preventDefault();
-        handleCatch(hole, e.clientX, e.clientY);
+        const touch = e.touches ? e.touches[0] : e;
+        handleCatch(hole, touch.clientX, touch.clientY);
     };
+    hole.addEventListener('touchstart', press, {passive:false});
+    hole.addEventListener('mousedown', press);
     board.appendChild(hole);
 }
 
@@ -106,17 +108,24 @@ function handleCatch(hole, x, y) {
     hole.dataset.type = "";
 
     let text = "", color = "yellow";
-    if(type == "dad"){
-        score = Math.max(0, score - 20);
-        dadHit++;
+    
+    if(type === "heart") {
+        dadHit = Math.max(0, dadHit - 1);
+        text = "LIFE UP! ❤️"; color = "#ff5252";
+        playSound(1000);
+    } else if(type === "dad") {
+        combo = 0; dadHit++;
+        text = "아야!"; color = "red";
         playSound(200);
-        text = "-20"; color = "red";
         if(navigator.vibrate) navigator.vibrate(200);
     } else {
-        let pts = (type == "doll") ? 20 : 10;
+        combo++;
+        let pts = (type === "doll") ? 20 : 10;
         score += pts;
-        playSound(600 + (pts * 10));
-        text = "+" + pts; color = (type == "doll") ? "lime" : "yellow";
+        text = "+" + pts; color = (type === "doll") ? "lime" : "white";
+        playSound(600 + (Math.min(combo, 10) * 40));
+        
+        if(combo >= 3 && combo % 3 === 0) showCombo(combo);
     }
 
     document.getElementById("score").innerText = score;
@@ -125,10 +134,16 @@ function handleCatch(hole, x, y) {
     if(dadHit >= 3) gameOver();
 }
 
+function showCombo(n) {
+    const m = document.getElementById("comboMsg");
+    m.innerText = n + " COMBO!";
+    m.style.display = "block";
+    setTimeout(() => { m.style.display = "none"; }, 800);
+}
+
 function showScorePopup(x, y, text, color) {
     let p = document.createElement("div");
-    p.className = "scorePopup";
-    p.innerText = text; p.style.color = color;
+    p.className = "scorePopup"; p.innerText = text; p.style.color = color;
     p.style.left = x + "px"; p.style.top = y + "px";
     document.body.appendChild(p);
     setTimeout(() => p.remove(), 800);
@@ -153,54 +168,40 @@ function startCountdown() {
     const cd = document.getElementById("countdown");
     cd.style.display = "flex";
     cd.innerText = count;
-
     let timer = setInterval(() => {
         count--;
         if(count > 0) cd.innerText = count;
-        else if(count === 0) cd.innerText = "START";
-        else {
-            clearInterval(timer);
-            cd.style.display = "none";
-            startGame();
-        }
+        else if(count === 0) cd.innerText = "GO!";
+        else { clearInterval(timer); cd.style.display = "none"; startGame(); }
     }, 800);
 }
 
 function startGame() {
-    score = 0; time = 20; stage = 1; speed = 1200; dadHit = 0;
-    updateUI();
-    runTimers();
+    score = 0; time = 20; stage = 1; speed = 1200; dadHit = 0; combo = 0;
+    updateUI(); runTimers();
 }
 
 function runTimers() {
-    clearInterval(gameTimer);
-    clearInterval(moleTimer);
+    clearInterval(gameTimer); clearInterval(moleTimer);
     gameTimer = setInterval(() => {
-        time--;
-        document.getElementById("time").innerText = time;
+        time--; document.getElementById("time").innerText = time;
         if(time <= 0) {
-            if(score >= stage * 60) nextStage();
+            if(score >= stage * 70) nextStage();
             else gameOver();
         }
     }, 1000);
-    moleTimer = setInterval(showCharacter, speed + 200);
+    moleTimer = setInterval(showCharacter, speed + 250);
 }
 
 function nextStage() {
-    stage++;
-    speed = Math.max(650, speed * 0.85); // 최소 속도 0.65초 보장
-    time = 20;
-    const pop = document.getElementById("stagePopup");
-    pop.innerText = "STAGE " + stage;
-    pop.style.display = "flex";
-    setTimeout(() => { pop.style.display = "none"; }, 1000);
-    updateUI();
-    runTimers();
+    stage++; speed = Math.max(650, speed * 0.85); time = 20;
+    alert("축하합니다! STAGE " + stage);
+    updateUI(); runTimers();
 }
 
 function showCharacter() {
     const holes = document.querySelectorAll(".hole");
-    holes.forEach(h => h.classList.remove('up'));
+    holes.forEach(h => { h.classList.remove('up'); h.dataset.type=""; });
 
     let count = stage >= 4 ? 2 : 1;
     let used = [];
@@ -209,17 +210,21 @@ function showCharacter() {
         do { idx = Math.floor(Math.random()*9); } while(used.includes(idx));
         used.push(idx);
 
-        let r = Math.random(), type = "sieun", img = "sieun.png";
-        if(r < 0.3) { type = "sieun"; img = "sieun.png"; }
-        else if(r < 0.6) { type = "gaeun"; img = "gaeun.png"; }
-        else if(r < 0.8) { type = "doll"; img = "doll.png"; }
-        else { type = "dad"; img = "dad.png"; }
+        let r = Math.random(), type, content, isImg = true;
+        if(r < 0.05) { type = "heart"; content = "❤️"; isImg = false; }
+        else if(r < 0.3) { type = "sieun"; content = "sieun.png"; }
+        else if(r < 0.55) { type = "gaeun"; content = "gaeun.png"; }
+        else if(r < 0.75) { type = "doll"; content = "doll.png"; }
+        else { type = "dad"; content = "dad.png"; }
 
         const hole = holes[idx];
         const imgTag = hole.querySelector("img");
-        imgTag.src = img;
-        hole.dataset.type = type;
+        const boxTag = hole.querySelector(".char-box");
         
+        if(isImg) { imgTag.src = content; imgTag.style.display="block"; boxTag.style.display="none"; }
+        else { boxTag.innerText = content; boxTag.style.display="flex"; imgTag.style.display="none"; }
+        
+        hole.dataset.type = type;
         setTimeout(() => { hole.classList.add('up'); }, 50);
         setTimeout(() => { hole.classList.remove('up'); }, speed);
     }
@@ -233,19 +238,9 @@ function updateUI() {
 }
 
 function gameOver() {
-    clearInterval(gameTimer);
-    clearInterval(moleTimer);
-    document.getElementById("finalScore").innerText = `최종 점수: ${score}\n최고 스테이지: ${stage}`;
+    clearInterval(gameTimer); clearInterval(moleTimer);
+    document.getElementById("finalScore").innerText = `최종 점수: ${score}점`;
     document.getElementById("gameOverScreen").style.display = "flex";
-}
-
-function restartGame() {
-    document.getElementById("gameOverScreen").style.display = "none";
-    startCountdown();
-}
-
-if("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("service-worker.js");
 }
 </script>
 </body>
