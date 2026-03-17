@@ -1,302 +1,252 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>시은가은 두더지게임</title>
-    <style>
-        :root {
-            --primary: #FF9800; --danger: #FF5252;
-            --bg-grad: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%);
-        }
-        body {
-            text-align: center; font-family: 'Nanum Gothic', sans-serif;
-            background: var(--bg-grad); margin: 0; padding: 0;
-            height: 100vh; overflow: hidden; touch-action: manipulation; user-select: none;
-        }
-        h2 { margin: 15px 0; color: #333; font-size: 26px; }
-        
-        #info-container { display: flex; justify-content: center; gap: 8px; margin-bottom: 10px; }
-        .info-card {
-            background: rgba(255, 255, 255, 0.9); padding: 6px 10px; border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1); font-weight: bold; min-width: 55px;
-        }
-        .info-label { font-size: 10px; color: #666; display: block; }
-        
-        #board {
-            width: 92vw; max-width: 380px; margin: 5px auto;
-            display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
-        }
-        .hole {
-            width: 100%; aspect-ratio: 1/1; background: #5d4037; border-radius: 50%;
-            position: relative; overflow: hidden; box-shadow: inset 0 8px 15px rgba(0,0,0,0.5);
-            cursor: pointer;
-        }
-        /* 클릭 인식률을 높이기 위해 character 영역을 꽉 채움 */
-        .character {
-            width: 100%; height: 100%; position: absolute; bottom: -100%; left: 0;
-            transition: bottom 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            display: flex; align-items: center; justify-content: center; font-size: 50px;
-            pointer-events: none; /* 클릭은 부모인 hole이 받음 */
-        }
-        .character img { width: 80%; height: 80%; object-fit: contain; pointer-events: none; }
-        .hole.up .character { bottom: 10%; }
-        
-        .effect-text {
-            position: fixed; pointer-events: none; font-weight: 900; z-index: 3000;
-            font-size: 30px; text-shadow: 2px 2px 0 white;
-            animation: scorePop 0.8s ease-out forwards;
-        }
-        @keyframes scorePop {
-            0% { transform: translate(-50%, 0) scale(0.5); opacity: 0; }
-            100% { transform: translate(-50%, -80px) scale(1.2); opacity: 0; }
-        }
-
-        .full-overlay-msg {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            display: none; justify-content: center; align-items: center;
-            z-index: 4000; pointer-events: none;
-        }
-        .msg-content {
-            font-size: 60px; font-weight: 900; color: white;
-            text-shadow: 4px 4px 10px rgba(0,0,0,0.5);
-            animation: msgZoom 1s ease-out forwards;
-        }
-        @keyframes msgZoom {
-            0% { transform: scale(0.3); opacity: 0; }
-            50% { transform: scale(1.1); opacity: 1; }
-            100% { transform: scale(1); opacity: 0; }
-        }
-
-        .main-btn {
-            background: var(--primary); color: white; border: none; padding: 12px 35px;
-            font-size: 20px; font-weight: bold; border-radius: 50px; box-shadow: 0 5px 0 #e68a00;
-            margin-top: 15px;
-        }
-        .overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85); display: none; justify-content: center;
-            align-items: center; flex-direction: column; color: white; z-index: 1500;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>시은가은 두더지게임</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#ff9800">
+<style>
+    body {
+        text-align: center; font-family: 'Nanum Gothic', sans-serif;
+        background: linear-gradient(#87CEEB, #e0f7ff); margin: 0; padding: 0;
+        touch-action: none; user-select: none;
+    }
+    h2 { margin-top: 20px; font-size: 28px; color: #333; }
+    #info {
+        font-size: 16px; margin: 10px; background: white; display: inline-block;
+        padding: 8px 15px; border-radius: 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        font-weight: bold;
+    }
+    .dadCount { color: red; }
+    #board {
+        width: 92vw; max-width: 400px; margin: 10px auto;
+        display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+    }
+    .hole {
+        width: 100%; aspect-ratio: 1/1; background: radial-gradient(circle, #7a451e, #3b1f0f);
+        border-radius: 50%; position: relative; overflow: hidden;
+        box-shadow: inset 0 8px 15px rgba(0,0,0,0.5);
+    }
+    .hole img {
+        width: 85%; height: 85%; position: absolute; bottom: -100%; left: 7.5%;
+        transition: bottom 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.2);
+        pointer-events: none;
+    }
+    .hole.up img { bottom: 10%; }
+    
+    .scorePopup {
+        position: fixed; font-size: 35px; font-weight: bold; z-index: 5000;
+        pointer-events: none; animation: popUpAnim 0.8s ease-out forwards;
+    }
+    @keyframes popUpAnim {
+        0% { transform: translate(-50%, 0) scale(0.5); opacity: 0; }
+        30% { opacity: 1; }
+        100% { transform: translate(-50%, -80px) scale(1.2); opacity: 0; }
+    }
+    button {
+        font-size: 20px; padding: 12px 30px; margin-top: 10px; border: none;
+        border-radius: 50px; background: #ff9800; color: white; font-weight: bold;
+        box-shadow: 0 4px 0 #e68a00; cursor: pointer;
+    }
+    .overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        display: none; justify-content: center; align-items: center;
+        flex-direction: column; color: white; background: rgba(0,0,0,0.8); z-index: 2000;
+    }
+    #stagePopup { font-size: 60px; font-weight: 900; text-shadow: 2px 2px 10px rgba(0,0,0,0.5); }
+</style>
 </head>
 <body>
 
-    <h2>시은가은 두더지게임</h2>
+<h2>시은가은 두더지게임</h2>
 
-    <div id="info-container">
-        <div class="info-card"><span class="info-label">STAGE</span><span id="stage">1</span></div>
-        <div class="info-card"><span class="info-label">SCORE</span><span id="score">0</span></div>
-        <div class="info-card"><span class="info-label">TIME</span><span id="time">20</span></div>
-        <div class="info-card"><span class="info-label">LIFE</span><span id="life" style="color:red">❤️❤️❤️</span></div>
-    </div>
+<div id="info">
+    Stage: <span id="stage">1</span> | 점수: <span id="score">0</span><br>
+    시간: <span id="time">20</span> | 아빠: <span id="dad" class="dadCount">0</span>/3
+</div>
 
-    <div id="board"></div>
-    <button id="startBtn" class="main-btn" onclick="initGame()">게임 시작!</button>
+<div id="board"></div>
+<button id="startBtn" onclick="startCountdown()">게임 시작</button>
 
-    <div id="fullOverlay" class="full-overlay-msg">
-        <div id="msgText" class="msg-content">STAGE 2</div>
-    </div>
+<div id="gameOverScreen" class="overlay">
+    <h1>게임 종료</h1>
+    <p id="finalScore" style="font-size: 22px; text-align: center;"></p>
+    <button onclick="restartGame()">다시하기</button>
+</div>
 
-    <div id="gameOverScreen" class="overlay">
-        <h1 style="font-size: 40px; color: var(--danger);">GAME OVER</h1>
-        <p id="finalScore" style="font-size: 20px; margin-bottom: 20px;"></p>
-        <button class="main-btn" onclick="initGame()">다시 도전!</button>
-    </div>
-
-    <div id="startCountdown" class="overlay" style="font-size: 100px; color: gold; font-weight: bold;"></div>
+<div id="countdown" class="overlay" style="font-size: 100px; color: gold;"></div>
+<div id="stagePopup" class="overlay"></div>
 
 <script>
-    let score = 0, time = 20, stage = 1, speed = 1500, life = 3, combo = 0;
-    let gameActive = false, gameTimer = null, moleTimer = null, audioCtx = null;
+let score = 0, time = 20, stage = 1, speed = 1200, dadHit = 0;
+let gameTimer, moleTimer, audioCtx = null;
+let bestScore = localStorage.getItem("bestScore") || 0;
 
-    const board = document.getElementById("board");
+// 구멍 생성 및 클릭 이벤트
+for(let i=0; i<9; i++){
+    let hole = document.createElement("div");
+    hole.className = "hole";
+    hole.innerHTML = `<img src="" id="img${i}">`;
+    
+    // 반응 속도가 빠른 pointerdown 사용
+    hole.onpointerdown = (e) => {
+        e.preventDefault();
+        handleCatch(hole, e.clientX, e.clientY);
+    };
+    board.appendChild(hole);
+}
 
-    for(let i=0; i<9; i++) {
-        let hole = document.createElement("div");
-        hole.className = "hole";
-        hole.innerHTML = `<div class="character"></div>`;
-        // hole 자체에 클릭 이벤트를 걸어 인식 범위를 최대화함
-        hole.addEventListener('mousedown', (e) => handleCatch(hole, e));
-        hole.addEventListener('touchstart', (e) => {
-            e.preventDefault(); // 터치 시 중복 실행 방지
-            handleCatch(hole, e.touches[0]);
-        });
-        board.appendChild(hole);
+function handleCatch(hole, x, y) {
+    if(!hole.classList.contains('up')) return;
+    let type = hole.dataset.type;
+    if(!type) return;
+
+    hole.classList.remove('up');
+    hole.dataset.type = "";
+
+    let text = "", color = "yellow";
+    if(type == "dad"){
+        score = Math.max(0, score - 20);
+        dadHit++;
+        playSound(200);
+        text = "-20"; color = "red";
+        if(navigator.vibrate) navigator.vibrate(200);
+    } else {
+        let pts = (type == "doll") ? 20 : 10;
+        score += pts;
+        playSound(600 + (pts * 10));
+        text = "+" + pts; color = (type == "doll") ? "lime" : "yellow";
     }
 
-    function handleCatch(hole, e) {
-        if(!gameActive || !hole.classList.contains('up')) return;
-        
-        const type = hole.dataset.type;
-        if(!type) return; // 이미 잡힌 경우 무시
+    document.getElementById("score").innerText = score;
+    document.getElementById("dad").innerText = dadHit;
+    showScorePopup(x, y, text, color);
+    if(dadHit >= 3) gameOver();
+}
 
-        hole.classList.remove('up');
-        hole.dataset.type = ""; // 즉시 데이터 비워서 중복 클릭 방지
+function showScorePopup(x, y, text, color) {
+    let p = document.createElement("div");
+    p.className = "scorePopup";
+    p.innerText = text; p.style.color = color;
+    p.style.left = x + "px"; p.style.top = y + "px";
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 800);
+}
 
-        let text = ""; let color = "yellow";
+function playSound(freq) {
+    try {
+        if(!audioCtx) audioCtx = new(window.AudioContext || window.webkitAudioContext)();
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.frequency.value = freq; osc.start();
+        gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.2);
+        osc.stop(audioCtx.currentTime + 0.2);
+    } catch(e) {}
+}
 
-        if(type === "dad") {
-            combo = 0; life--; text = "아야!"; color = "red";
-            playSound(200, 'sawtooth');
-            if(navigator.vibrate) navigator.vibrate(200);
-            if(life <= 0) gameOver();
-        } else if(type === "heart") {
-            if(life < 3) life++; text = "LIFE UP!"; color = "#ff5252";
-            playSound(1200);
-        } else {
-            combo++;
-            let points = (type === "doll") ? 20 : 10;
-            score += points; text = `+${points}`;
-            playSound(600 + (Math.min(combo, 10) * 30));
-            if(combo >= 3 && combo % 3 === 0) showFullOverlay(combo + " COMBO!", "rgba(255, 255, 255, 0.1)");
+function startCountdown() {
+    document.getElementById("startBtn").style.display = "none";
+    let count = 3;
+    const cd = document.getElementById("countdown");
+    cd.style.display = "flex";
+    cd.innerText = count;
+
+    let timer = setInterval(() => {
+        count--;
+        if(count > 0) cd.innerText = count;
+        else if(count === 0) cd.innerText = "START";
+        else {
+            clearInterval(timer);
+            cd.style.display = "none";
+            startGame();
         }
-        
-        updateUI();
-        showScorePopup(e.clientX, e.clientY, text, color);
-    }
+    }, 800);
+}
 
-    function showScorePopup(x, y, text, color) {
-        const el = document.createElement("div");
-        el.className = "effect-text";
-        el.innerText = text; el.style.color = color;
-        el.style.left = x + "px"; el.style.top = y + "px";
-        document.body.appendChild(el);
-        setTimeout(() => el.remove(), 800);
-    }
+function startGame() {
+    score = 0; time = 20; stage = 1; speed = 1200; dadHit = 0;
+    updateUI();
+    runTimers();
+}
 
-    function showFullOverlay(text, bgColor) {
-        const overlay = document.getElementById("fullOverlay");
-        const msgText = document.getElementById("msgText");
-        overlay.style.backgroundColor = bgColor;
-        msgText.innerText = text;
-        overlay.style.display = "flex";
-        setTimeout(() => { overlay.style.display = "none"; }, 1000);
-    }
-
-    function initGame() {
-        score = 0; stage = 1; speed = 1500; life = 3; combo = 0; time = 20;
-        document.getElementById("gameOverScreen").style.display = "none";
-        document.getElementById("startBtn").style.display = "none";
-        
-        if(gameTimer) clearInterval(gameTimer);
-        if(moleTimer) clearTimeout(moleTimer);
-        
-        const cdOverlay = document.getElementById("startCountdown");
-        cdOverlay.style.display = "flex";
-        let count = 3;
-        cdOverlay.innerText = count;
-
-        let cdInterval = setInterval(() => {
-            count--;
-            if(count > 0) cdOverlay.innerText = count;
-            else if(count === 0) cdOverlay.innerText = "GO!";
-            else {
-                clearInterval(cdInterval);
-                cdOverlay.style.display = "none";
-                runGame();
-            }
-        }, 800);
-    }
-
-    function nextStage() {
-        gameActive = false;
-        clearInterval(gameTimer);
-        clearTimeout(moleTimer);
-        
-        stage++;
-        time = 20; 
-        // 스테이지 4 이후 속도 급상승 방지 (최소 650ms 유지)
-        speed = Math.max(650, speed * 0.85); 
-        updateUI();
-
-        showFullOverlay("STAGE " + stage, "rgba(255, 152, 0, 0.4)");
-        playSound(1000); playSound(1300);
-
-        setTimeout(() => { runGame(); }, 1200);
-    }
-
-    function runGame() {
-        gameActive = true;
-        updateUI();
-        
-        gameTimer = setInterval(() => {
-            time--;
-            document.getElementById("time").innerText = time;
-            if(time <= 0) {
-                gameActive = false;
-                clearInterval(gameTimer);
-                clearTimeout(moleTimer);
-                if(score >= stage * 60) nextStage(); // 통과 점수 살짝 하향
-                else gameOver();
-            }
-        }, 1000);
-        spawnLoop();
-    }
-
-    function spawnLoop() {
-        if(!gameActive) return;
-        showCharacters();
-        moleTimer = setTimeout(spawnLoop, speed + 200); // 다음 두더지 출현 간격에 여유 부여
-    }
-
-    function showCharacters() {
-        const holes = document.querySelectorAll(".hole");
-        holes.forEach(h => h.classList.remove('up'));
-        
-        let count = (stage >= 4 && Math.random() > 0.5) ? 2 : 1;
-        let chosen = [];
-        for(let i=0; i<count; i++) {
-            let idx;
-            do { idx = Math.floor(Math.random() * 9); } while(chosen.includes(idx));
-            chosen.push(idx);
-            
-            const hole = holes[idx];
-            const charDiv = hole.querySelector(".character");
-            const r = Math.random();
-            let type, content;
-            
-            if (r < 0.05) { type = "heart"; content = "❤️"; }
-            else if (r < 0.25) { type = "dad"; content = "<img src='dad.png' onerror='this.outerHTML=\"👨\"'>"; }
-            else if (r < 0.50) { type = "sieun"; content = "<img src='sieun.png' onerror='this.outerHTML=\"👧\"'>"; }
-            else if (r < 0.75) { type = "gaeun"; content = "<img src='gaeun.png' onerror='this.outerHTML=\"👧\"'>"; }
-            else { type = "doll"; content = "<img src='doll.png' onerror='this.outerHTML=\"🧸\"'>"; }
-            
-            hole.dataset.type = type; charDiv.innerHTML = content;
-            setTimeout(() => { if(gameActive) hole.classList.add('up'); }, 50);
-            
-            // 두더지가 나와있는 시간을 최소 600ms 보장하여 클릭 인식률 향상
-            let stayTime = Math.max(600, speed * 0.8);
-            setTimeout(() => { if(hole.dataset.type === type) hole.classList.remove('up'); }, stayTime);
-        }
-    }
-
-    function updateUI() {
-        document.getElementById("stage").innerText = stage;
-        document.getElementById("score").innerText = score;
+function runTimers() {
+    clearInterval(gameTimer);
+    clearInterval(moleTimer);
+    gameTimer = setInterval(() => {
+        time--;
         document.getElementById("time").innerText = time;
-        document.getElementById("life").innerText = "❤️".repeat(life) + "🖤".repeat(3-life);
-    }
+        if(time <= 0) {
+            if(score >= stage * 60) nextStage();
+            else gameOver();
+        }
+    }, 1000);
+    moleTimer = setInterval(showCharacter, speed + 200);
+}
 
-    function gameOver() {
-        gameActive = false;
-        clearInterval(gameTimer);
-        clearTimeout(moleTimer);
-        document.getElementById("finalScore").innerText = `최종 점수: ${score}점 (Stage ${stage})`;
-        document.getElementById("gameOverScreen").style.display = "flex";
-    }
+function nextStage() {
+    stage++;
+    speed = Math.max(650, speed * 0.85); // 최소 속도 0.65초 보장
+    time = 20;
+    const pop = document.getElementById("stagePopup");
+    pop.innerText = "STAGE " + stage;
+    pop.style.display = "flex";
+    setTimeout(() => { pop.style.display = "none"; }, 1000);
+    updateUI();
+    runTimers();
+}
 
-    function playSound(freq, type='sine') {
-        try {
-            if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = type; osc.connect(gain); gain.connect(audioCtx.destination);
-            osc.frequency.value = freq; osc.start();
-            gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.2);
-            osc.stop(audioCtx.currentTime + 0.2);
-        } catch(e) {}
+function showCharacter() {
+    const holes = document.querySelectorAll(".hole");
+    holes.forEach(h => h.classList.remove('up'));
+
+    let count = stage >= 4 ? 2 : 1;
+    let used = [];
+    for(let i=0; i<count; i++) {
+        let idx;
+        do { idx = Math.floor(Math.random()*9); } while(used.includes(idx));
+        used.push(idx);
+
+        let r = Math.random(), type = "sieun", img = "sieun.png";
+        if(r < 0.3) { type = "sieun"; img = "sieun.png"; }
+        else if(r < 0.6) { type = "gaeun"; img = "gaeun.png"; }
+        else if(r < 0.8) { type = "doll"; img = "doll.png"; }
+        else { type = "dad"; img = "dad.png"; }
+
+        const hole = holes[idx];
+        const imgTag = hole.querySelector("img");
+        imgTag.src = img;
+        hole.dataset.type = type;
+        
+        setTimeout(() => { hole.classList.add('up'); }, 50);
+        setTimeout(() => { hole.classList.remove('up'); }, speed);
     }
+}
+
+function updateUI() {
+    document.getElementById("score").innerText = score;
+    document.getElementById("time").innerText = time;
+    document.getElementById("stage").innerText = stage;
+    document.getElementById("dad").innerText = dadHit;
+}
+
+function gameOver() {
+    clearInterval(gameTimer);
+    clearInterval(moleTimer);
+    document.getElementById("finalScore").innerText = `최종 점수: ${score}\n최고 스테이지: ${stage}`;
+    document.getElementById("gameOverScreen").style.display = "flex";
+}
+
+function restartGame() {
+    document.getElementById("gameOverScreen").style.display = "none";
+    startCountdown();
+}
+
+if("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("service-worker.js");
+}
 </script>
 </body>
 </html>
